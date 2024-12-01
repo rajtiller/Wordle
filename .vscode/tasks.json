@@ -1,0 +1,16 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build",
+            "type": "shell",
+            "command": "cmake --build .",  // This runs the build command for your CMake project
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": ["$gcc"],  // You can use different matchers depending on your compiler
+            "detail": "Generated task for building the C++ project."
+        }
+    ]
+}
