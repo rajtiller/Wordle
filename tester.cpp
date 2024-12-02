@@ -6,7 +6,7 @@
 #include <set>
 #include <map>
 
-std::bitset<10> color_guess_1(char* &word, std::pair<std::unordered_map<char, std::vector<int>>, char*> &guess)
+std::bitset<10> color_guess_1(char *&word, std::pair<std::unordered_map<char, std::vector<int>>, char *> &guess)
 {
     std::bitset<10> ret; // Stores the result
     for (size_t word_inx = 0; word_inx < 5; word_inx++)
@@ -36,8 +36,7 @@ std::bitset<10> color_guess_1(char* &word, std::pair<std::unordered_map<char, st
     return ret; // Convert std::bitset to size_t before returning
 }
 
-
-size_t color_guess_2(char * &word, std::pair<std::unordered_map<char, std::vector<int>>, char *> &guess)
+size_t color_guess_2(char *&word, std::pair<std::unordered_map<char, std::vector<int>>, char *> &guess)
 {
     // std::cout << "Word: "<< word << "\n" << "Guess: " << guess<<std::endl;
     uint16_t ret = 0; // consider using vector and see what happens
@@ -48,11 +47,15 @@ size_t color_guess_2(char * &word, std::pair<std::unordered_map<char, std::vecto
         {
             if (word[word_inx] == guess.second[word_inx])
             {
-                ret |= (3 << 2*word_inx);
-            } else {
-                for (int & inx:it->second) {
-                    if ((ret >> 2*inx & 0b11) == 0b00) {
-                        ret |= (1 << 2*inx);
+                ret |= (3 << 2 * word_inx);
+            }
+            else
+            {
+                for (int &inx : it->second)
+                {
+                    if ((ret >> 2 * inx & 0b11) == 0b00)
+                    {
+                        ret |= (1 << 2 * inx);
                         break;
                     }
                 }
@@ -97,21 +100,36 @@ size_t color_guess_4(char *&word, std::unordered_map<char, std::set<int>> &guess
     return ret;
 }
 
+char *to_upper_1(std::string &input)
+{
+    char *result = strdup(input.c_str()); // Duplicate the input string as a modifiable char array
+    if (!result)
+        return nullptr; // Handle allocation failure
+
+    // Convert each character to uppercase
+    for (char *ptr = result; *ptr; ++ptr)
+    {
+        *ptr = std::toupper(*ptr);
+    }
+    return result;
+}
+
 int main()
 {
-   char* word = "ARRAY";
-    std::pair<std::unordered_map<char, std::vector<int>>,char*> guess; // RADAR
+    char *word = "STEEL";
+    std::string lower_case = "antidisestablishminterianism";
+    std::pair<std::unordered_map<char, std::vector<int>>, char *> guess; // RADAR
     std::unordered_map<char, std::set<int>> guess_2;
-    guess.second = "RADAR";
-    guess.first['R'] = {0, 4};
-    guess.first['A'] = {1, 3};
-    guess.first['D'] = {2};
-    guess_2['R'] = {0, 4};
-    guess_2['A'] = {1, 3};
-    guess_2['D'] = {2};
+    guess.second = "STEEL";
+    for (size_t i = 0; i < 5; i++) {
+        guess.first[guess.second[i]].push_back(i);
+    }
+        for (size_t i = 0; i < 5; i++) {
+        guess_2[guess.second[i]].insert(i);
+    }
     for (int i = 0; i < 14855 * 2309; i++) // 14855 * 2309
     {                                      // 1000000
-        color_guess_1(word, guess); // Should be 453 aka YGBYY
+        color_guess_2(word, guess);        // Should be 453 aka YGBYY
     }
     return 0;
 }
