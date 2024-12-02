@@ -5,7 +5,7 @@
             "name": "Debug Main",
             "type": "lldb",
             "request": "launch",
-            "program": "${workspaceFolder}/main",  // Ensure this points to your `main` executable
+            "program": "${workspaceFolder}/tester",  // Ensure this points to your `main` executable
             "args": [],
             "cwd": "${workspaceFolder}",
             "stopAtEntry": false,

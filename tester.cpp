@@ -6,39 +6,54 @@
 #include <set>
 #include <map>
 
-size_t color_guess_1(char *&word, std::unordered_map<char, std::set<int>> &guess)
-{ // should return a value between 0 and 242
-    // yellow iff char is
-    size_t ret = 0b0000000000;     // Unnecesariily complicated, but it should work. Green is 11 and yellow is 01
-    for (size_t i = 0; i < 5; i++) // for char in word, give letter to 'deserving' letter in guess (if any exists)
+std::bitset<10> color_guess_1(char* &word, std::pair<std::unordered_map<char, std::vector<int>>, char*> &guess)
+{
+    std::bitset<10> ret; // Stores the result
+    for (size_t word_inx = 0; word_inx < 5; word_inx++)
     {
-        auto it = guess.find(word[i]);
-        if (it != guess.end())
+        auto it = guess.first.find(word[word_inx]);
+        if (it != guess.first.end())
         {
-            // std::set<int> & res = it->second;
-            if (it->second.find(i) != it->second.end())
-            {                           // if the letter should be green in guess
-                ret |= (0b11 << 2 * i); // could overwrite the letter, but that's fine
-            }
-            else if ((ret >> 2 * *it->second.begin() & 0b11) == 0b00)
-            {                                             // letter is first of its kind in word
-                ret |= (0b01 << 2 * *it->second.begin()); // make letter yellow
+            if (word[word_inx] == guess.second[word_inx])
+            {
+                // Set ret for exact match
+                ret |= std::bitset<10>(3 << 2 * word_inx);
             }
             else
             {
-                if (it->second.size() > 1)
-                { // check if letter appears twice in guess
-                    if ((ret >> 2 * *(++it->second.begin()) & 0b11) == 0b00)
-                    {                                                 // letter is second of its kind
-                        ret |= (0b01 << 2 * *(++it->second.begin())); // make letter yellow
+                for (int &inx : it->second)
+                {
+                    if ((ret >> (2 * inx) & std::bitset<10>(0b11)) == std::bitset<10>(0))
+                    {
+                        // Set ret for partial match
+                        ret |= std::bitset<10>(1 << 2 * inx);
+                        break;
                     }
-                    else
-                    { // letter is third of its kind
-                        if (it->second.size() > 2)
-                        { // check if letter appears thrice in guess
-                            ret |= (0b01 << 2 * *(++ ++it->second.begin()));
-                            // no letter appears four times in a word, so we can simply set the last letter to be yellow
-                        }
+                }
+            }
+        }
+    }
+    return ret; // Convert std::bitset to size_t before returning
+}
+
+
+size_t color_guess_2(char * &word, std::pair<std::unordered_map<char, std::vector<int>>, char *> &guess)
+{
+    // std::cout << "Word: "<< word << "\n" << "Guess: " << guess<<std::endl;
+    uint16_t ret = 0; // consider using vector and see what happens
+    for (size_t word_inx = 0; word_inx < 5; word_inx++)
+    {
+        auto it = guess.first.find(word[word_inx]);
+        if (it != guess.first.end())
+        {
+            if (word[word_inx] == guess.second[word_inx])
+            {
+                ret |= (3 << 2*word_inx);
+            } else {
+                for (int & inx:it->second) {
+                    if ((ret >> 2*inx & 0b11) == 0b00) {
+                        ret |= (1 << 2*inx);
+                        break;
                     }
                 }
             }
@@ -47,48 +62,56 @@ size_t color_guess_1(char *&word, std::unordered_map<char, std::set<int>> &guess
     return ret;
 }
 
-size_t color_guess_2(char *&word, char *&guess)
+size_t color_guess_3(std::string &word, std::string &guess_2, std::unordered_map<char, std::set<int>> &guess)
 {
-    // std::cout << "Word: "<< word << "\n" << "Guess: " << guess<<std::endl;
-    std::vector<int> to_ret(5, 0);
-    std::vector<char> unused_chars;
+    size_t ret = 0;
     for (size_t i = 0; i < 5; i++)
-    { // for char in word, assign green letters
-        if (word[i] == guess[i])
+    {
+        if (guess.find(word[i]) != guess.end())
         {
-            to_ret[i] = 3;
-        }
-        else
-        {
-            unused_chars.push_back(word[i]);
+            if (word[i] == guess_2[i])
+            {
+                ret += 2;
+            }
+            ret += 1;
         }
     }
-    for (char c : unused_chars)
+    return ret;
+}
+
+size_t color_guess_4(char *&word, std::unordered_map<char, std::set<int>> &guess)
+{
+    size_t ret = 0;
+    for (size_t i = 0; i < 5; i++)
     {
-        // std::cout<<c<<"\n";
-        for (size_t i = 0; i < 5; i++)
+        auto it = guess.find(word[i]);
+        if (it != guess.end())
         {
-            if (!to_ret[i] && guess[i] == c)
+            ret += 1;
+            if (it->second.find(i) != it->second.end())
             {
-                to_ret[i] = 1;
-                // std:: cout << "char, inx: " << guess[i] << i<<"\n";
-                break;
+                ret += 2;
             }
         }
     }
-    return (to_ret[4] << 8) + (to_ret[3] << 6) + (to_ret[2] << 4) + (to_ret[1] << 2) + (to_ret[0] << 0);
-}
-int main()
-{
-    return 0;
+    return ret;
 }
 
-// char* word = "ARRAY";
-// std::unordered_map<char, std::set<int>> guess; // RADAR
-// char * guess_2 = "RADAR";
-// guess['R'] = {0,4};
-// guess['A'] = {1,3};
-// guess['D'] = {2};
-// for (int i = 0; i < 1; i++) { // 1000000
-//     std::cout<<color_guess_1(word,guess);
-// }
+int main()
+{
+   char* word = "ARRAY";
+    std::pair<std::unordered_map<char, std::vector<int>>,char*> guess; // RADAR
+    std::unordered_map<char, std::set<int>> guess_2;
+    guess.second = "RADAR";
+    guess.first['R'] = {0, 4};
+    guess.first['A'] = {1, 3};
+    guess.first['D'] = {2};
+    guess_2['R'] = {0, 4};
+    guess_2['A'] = {1, 3};
+    guess_2['D'] = {2};
+    for (int i = 0; i < 14855 * 2309; i++) // 14855 * 2309
+    {                                      // 1000000
+        color_guess_1(word, guess); // Should be 453 aka YGBYY
+    }
+    return 0;
+}
