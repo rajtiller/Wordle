@@ -4,12 +4,14 @@
         {
             "label": "build",
             "type": "shell",
-            "command": "cmake --build .",  // This runs the build command for your CMake project
+            "command": "cd build && cmake --build .", // This runs the build command for your CMake project
             "group": {
                 "kind": "build",
                 "isDefault": true
             },
-            "problemMatcher": ["$gcc"],  // You can use different matchers depending on your compiler
+            "problemMatcher": [
+                "$gcc"
+            ], // You can use different matchers depending on your compiler
             "detail": "Generated task for building the C++ project."
         }
     ]

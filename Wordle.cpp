@@ -1,29 +1,10 @@
 #include "Wordle.h"
 
-size_t Wordle::set_hasher(const SetType &curr_words)
-{
-    std::hash<std::string> string_hasher; // Use a string hasher for consistency.
-    size_t hash_value = 0;
-
-    for (const char *str : curr_words)
-    {
-        if (str)
-        {
-            // Hash each string and combine using XOR and a prime multiplier
-            hash_value ^= string_hasher(std::string(str)) + 0x9e3779b9 + (hash_value << 6) + (hash_value >> 2);
-        }
+std::string & Wordle::to_upper_case(std::string & in) {
+    for (char & c:in) {
+        c = std::toupper(c);
     }
-    return hash_value;
-}
-
-char *Wordle::to_SetType(std::string &in)
-{
-    char *ret;
-    for (char c : in)
-    {
-        ret += std::toupper(c);
-    }
-    return ret;
+    return in;
 }
 
 R_STRING Wordle::to_R_STRING(std::string &in)
@@ -38,7 +19,7 @@ R_STRING Wordle::to_R_STRING(std::string &in)
 
 void Wordle::print_best_word(std::pair<R_STRING, double> &input, std::ostream &os)
 {
-    char word[5];
+    std::string word(5,'X');
     for (auto r_string : input.first)
     {
         for (auto c : r_string.second)
@@ -49,7 +30,7 @@ void Wordle::print_best_word(std::pair<R_STRING, double> &input, std::ostream &o
     os << word << ": " << input.second << "\n";
 }
 
-size_t Wordle::color_guess(char *&word, R_STRING &guess) // reasonably tested
+size_t Wordle::color_guess(std::string &word, R_STRING &guess) // reasonably tested
 {                                                        // should return a value between 0 and 242
     // yellow iff char is
     size_t ret = 0b0000000000;     // Unnecesariily complicated, but it should work. Green is 11 and yellow is 01
@@ -95,7 +76,7 @@ double Wordle::naive_information_estimate(SetType &curr_words, R_STRING guess)
     // map not unordered_map bc I want to be able to iterate through quickly
     // even though vectors do perfect hash, it will leave a lot of empty spaces
     std::map<int, Int> seperated_words;
-    for (char *&word : curr_words)
+    for (std::string &word : curr_words)
     {
         ++seperated_words[color_guess(word, guess)];
     }
@@ -103,39 +84,39 @@ double Wordle::naive_information_estimate(SetType &curr_words, R_STRING guess)
     for (std::pair<const int, Int> freq : seperated_words)
     {
         // ret += freq.second.num * freq.second.num; // geometric mean w/o normalization
-        ret += std::log(freq.second.num) * freq.second.num; // logorithmix mean w/0 normalization
+        ret += std::log(freq.second.num) * freq.second.num; // logorithmix mean w/o normalization
     }
     return ret;
 }
 
 void Wordle::create_subgroups(SetType &curr_words, R_STRING &guess, std::map<size_t, SetType> &possibilities)
 { // small return value means it's a good guess
-    for (char *&word : curr_words)
+    for (std::string &word : curr_words)
     {
         possibilities[color_guess(word, guess)].push_back(word);
     }
+    possibilities.erase(255); // cause when the guess equals the word, we don't want that to add to the total
 }
 
 double Wordle::exact_information_value(SetType &curr_words, R_STRING guess)
 {
     double running_total = 0; // I don't think any sort of pruning is possible (maybe for small cases?)
     std::map<size_t, SetType> possibilities;
+    create_subgroups(curr_words,guess,possibilities);
     for (std::pair<const size_t, SetType> &possibility : possibilities)
     {
-        running_total += calculate_set_value(possibility.second) * possibility.second.size();
+        running_total += calculate_set_value(possibility.second) * possibility.second.size(); // not doing division until end
     }
-    return running_total;
+    return curr_words.size() + running_total;
 }
 
-double Wordle::calculate_set_value(SetType &curr_words, std::optional<size_t> curr_hash_in) // add base cases at some point
+double Wordle::calculate_set_value(SetType &curr_words) // add base cases at some point
 {
     if (curr_words.size() < 3)
     {
-        return 0.5+curr_words.size()/2;
+        return (1+curr_words.size())/2.0;
     }
-    size_t curr_hash = curr_hash_in.has_value() ? curr_hash_in.value() : set_hasher(curr_words);
-    double ret = 10;
-    auto it = word_value_map.find(curr_hash);
+    auto it = word_value_map.find(curr_words);
     if (it != word_value_map.end())
     {
         return it->second.second;
@@ -184,22 +165,21 @@ double Wordle::calculate_set_value(SetType &curr_words, std::optional<size_t> cu
             best_guess = guess;
         }
     }
-    word_value_map[curr_hash] = {best_guess, 1 + best_value / curr_words.size()}; // Idk if I should add the +1 here
-    return word_value_map[curr_hash].second;
+    word_value_map[curr_words] = {best_guess, best_value / curr_words.size()}; // Idk if I should add the +1 here
+    return best_value / curr_words.size();
 }
 
 std::pair<R_STRING, double> Wordle::find_best_word(SetType &curr_words)
 {
     if (curr_words.size() > 2)
     {
-        size_t curr_hash = set_hasher(curr_words);
-        auto it = word_value_map.find(curr_hash);
+        auto it = word_value_map.find(curr_words);
         if (it != word_value_map.end())
         {
             return it->second;
         }
-        calculate_set_value(curr_words, curr_hash);
-        return word_value_map[curr_hash];
+        calculate_set_value(curr_words);
+        return word_value_map[curr_words];
     }
     std::string first_word(curr_words[0]);
     return {to_R_STRING(first_word),0.5+curr_words.size()/2};
@@ -211,7 +191,7 @@ void Wordle::prep_guesses_and_answers()
     std::string curr_word;
     while (std::getline(answers_file, curr_word))
     {
-        ANSWERS.push_back(to_SetType(curr_word));
+        ANSWERS.push_back(to_upper_case(curr_word));
     }
     answers_file.close();
     std::ifstream guesses_file(GUESSES_FILE);
